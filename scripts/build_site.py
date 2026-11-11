@@ -41,6 +41,7 @@ def main():
     (args.output / "index.html").write_text(
         '<!doctype html>\n<html lang="en"><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23146e54'/%3E%3C/svg%3E\">"
         '<meta http-equiv="refresh" content="0;url=./examples/">'
         '<title>Audio Engine Lab</title><a href="./examples/">Open Audio Engine Lab</a></html>\n',
         encoding="utf-8",
