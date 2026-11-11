@@ -1,0 +1,31 @@
+{
+  "name": "wasm-audio-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "files": ["dist", "AGENTS.md", "DESIGN.md", "TASK.md", "DEPENDENCIES.md", "THIRD_PARTY_NOTICES.txt", "docs", "examples"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./wasm": {
+      "types": "./dist/wasm/wasm_audio_engine.d.ts",
+      "import": "./dist/wasm/wasm_audio_engine.js"
+    },
+    "./wasm/*": "./dist/wasm/*"
+  },
+  "scripts": {
+    "test": "npm run build && node --test tests/sdk-errors.mjs",
+    "build": "tsc -p tsconfig.json",
+    "build:wasm": "cargo build --release --locked --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir dist/wasm target/wasm32-unknown-unknown/release/wasm_audio_engine.wasm",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "prettier --write web/src tests/browser-smoke.html tests/browser-long.html tests/browser-real.html tests/browser-chunk.html tests/browser-quality.html examples/index.html examples/tools.js tests/hound-wasm.html tests/sdk-errors.mjs scripts/run_browser_file.mjs",
+    "format:check": "prettier --check web/src tests/browser-smoke.html tests/browser-long.html tests/browser-real.html tests/browser-chunk.html tests/browser-quality.html examples/index.html examples/tools.js tests/hound-wasm.html tests/sdk-errors.mjs scripts/run_browser_file.mjs"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  }
+}

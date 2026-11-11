@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Long WAV browser smoke test</title>
+  <label
+    >Generated WAV fixture <input id="file" type="file" accept=".wav"
+  /></label>
+  <pre id="result">Select a generated fixture</pre>
+  <script type="module">
+    import * as bindings from "/target/browser/wasm_audio_engine.js";
+    import { createAudioEngine } from "/dist/index.js";
+    const engine = await createAudioEngine(bindings);
+    const wasm = await bindings.default();
+    const result = document.querySelector("#result");
+    document
+      .querySelector("#file")
+      .addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        let bytesWritten = 0,
+          points = 0,
+          intervals = 0,
+          maxJsHeap = 0;
+        const start = performance.now();
+        result.textContent = "RUNNING";
+        try {
+          const output = new WritableStream({
+            write(bytes) {
+              bytesWritten += bytes.byteLength;
+            },
+          });
+          const stats = await engine.processWav(file, output, {
+            outputSampleRate: 8000,
+            outputChannels: 1,
+            normalizePeak: 0.8,
+            silenceThreshold: 0,
+            minSilenceFrames: 1,
+            waveformWindowFrames: 16000,
+            inputChunkFrames: 8192,
+            onSilence() {
+              intervals++;
+            },
+            onWaveform() {
+              points++;
+            },
+            onProgress() {
+              maxJsHeap = Math.max(
+                maxJsHeap,
+                performance.memory?.usedJSHeapSize ?? 0,
+              );
+            },
+          });
+          if (
+            stats.inputFrames !== 57600000 ||
+            stats.outputFrames !== 28800000 ||
+            bytesWritten !== 57600044 ||
+            points !== 3600 ||
+            intervals !== 1
+          )
+            throw new Error("Unexpected long test output");
+          result.textContent = JSON.stringify({
+            status: "PASS",
+            elapsedMs: performance.now() - start,
+            sampledJsHeapBytes: maxJsHeap,
+            wasmLinearMemoryBytes: wasm.memory.buffer.byteLength,
+            bytesWritten,
+            points,
+            intervals,
+            stats,
+          });
+        } catch (error) {
+          result.textContent = `FAIL: ${String(error)}`;
+        }
+      });
+  </script>
+</html>

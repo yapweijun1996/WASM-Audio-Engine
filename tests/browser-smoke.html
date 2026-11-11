@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>WASM normalization smoke test</title>
+  <pre id="result">Running</pre>
+  <script type="module">
+    import * as bindings from "/target/browser/wasm_audio_engine.js";
+    import { createAudioEngine, AudioEngineError } from "/dist/index.js";
+    const result = document.querySelector("#result");
+    try {
+      const engine = await createAudioEngine(bindings);
+      for (const operation of [
+        () => engine.normalizePeak(new Float32Array([NaN]), 1),
+        () => engine.spectrum(new Float32Array(2), 16000),
+      ]) {
+        let rejected = false;
+        try {
+          operation();
+        } catch (error) {
+          rejected =
+            error instanceof AudioEngineError &&
+            error.code === "DSP_ERROR" &&
+            error.contractVersion === 1;
+        }
+        if (!rejected) throw new Error("Missing versioned DSP error");
+      }
+      const samples = new Float32Array([0.25, -0.5, 0]);
+      const gain = engine.normalizePeak(samples, 1);
+      if (
+        gain !== 2 ||
+        samples[0] !== 0.5 ||
+        samples[1] !== -1 ||
+        samples[2] !== 0
+      ) {
+        throw new Error("Unexpected normalization output");
+      }
+      const tone = Float32Array.from(
+        { length: 1024 },
+        (_, i) => Math.sin((2 * Math.PI * 1000 * i) / 16000) * 0.5,
+      );
+      const spectrum = engine.spectrum(tone, 16000);
+      const peakBin = spectrum.reduce((best, bin) =>
+        bin.amplitude > best.amplitude ? bin : best,
+      );
+      if (
+        peakBin.frequencyHz !== 1000 ||
+        Math.abs(peakBin.amplitude - 0.5) > 0.002
+      )
+        throw new Error("Unexpected spectrum peak");
+      const source = new Uint8Array(44 + 4800 * 4);
+      const view = new DataView(source.buffer);
+      for (const [offset, text] of [
+        [0, "RIFF"],
+        [8, "WAVE"],
+        [12, "fmt "],
+        [36, "data"],
+      ]) {
+        for (let i = 0; i < text.length; i++)
+          source[offset + i] = text.charCodeAt(i);
+      }
+      view.setUint32(4, source.length - 8, true);
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 2, true);
+      view.setUint32(24, 48000, true);
+      view.setUint32(28, 192000, true);
+      view.setUint16(32, 4, true);
+      view.setUint16(34, 16, true);
+      view.setUint32(40, 4800 * 4, true);
+      for (let frame = 1200; frame < 3600; frame++) {
+        const sample = Math.round(Math.sin(frame * 0.08) * 8192);
+        view.setInt16(44 + frame * 4, sample, true);
+        view.setInt16(46 + frame * 4, sample, true);
+      }
+      const pieces = [];
+      const intervals = [];
+      const points = [];
+      const stream = new WritableStream({
+        write(chunk) {
+          pieces.push(chunk);
+        },
+      });
+      const opts = {
+        outputSampleRate: 16000,
+        outputChannels: 1,
+        normalizePeak: 0.8,
+        silenceThreshold: 0.01,
+        minSilenceFrames: 100,
+        waveformWindowFrames: 1000,
+        inputChunkFrames: 333,
+        onSilence(start, end) {
+          intervals.push([start, end]);
+        },
+        onWaveform(start, end, min, max) {
+          points.push([start, end, min, max]);
+        },
+      };
+      for (const failureMode of ["sink", "callback"]) {
+        const cause = new Error(`caller ${failureMode} failure`);
+        let observed;
+        try {
+          await engine.processWav(
+            new Blob([source]),
+            new WritableStream({
+              write() {
+                if (failureMode === "sink") throw cause;
+              },
+            }),
+            {
+              ...opts,
+              onProgress() {
+                if (failureMode === "callback") throw cause;
+              },
+            },
+          );
+        } catch (error) {
+          observed = error;
+        }
+        if (observed !== cause)
+          throw new Error("Caller failure identity was not preserved");
+      }
+      const stats = await engine.processWav(new Blob([source]), stream, opts);
+      const encoded = await new Blob(pieces).arrayBuffer();
+      const wav = new DataView(encoded);
+      let outputPeak = 0;
+      for (let offset = 44; offset < encoded.byteLength; offset += 2)
+        outputPeak = Math.max(
+          outputPeak,
+          Math.abs(wav.getInt16(offset, true)) / 32768,
+        );
+      if (
+        stats.inputFrames !== 4800 ||
+        stats.inputChannels !== 2 ||
+        stats.silenceThreshold !== 0.01 ||
+        stats.minSilenceFrames !== 100 ||
+        stats.outputFrames !== 1600 ||
+        encoded.byteLength !== 3244 ||
+        wav.getUint16(22, true) !== 1 ||
+        wav.getUint32(24, true) !== 16000 ||
+        outputPeak < 0.7 ||
+        outputPeak > 1 ||
+        intervals[0][0] !== 0 ||
+        intervals.at(-1)[1] !== 4800 ||
+        points.at(-1)[1] !== 4800
+      ) {
+        throw new Error("Unexpected WAV processing result");
+      }
+      const chunks = [];
+      for await (const chunk of engine.chunkWav(new Blob([source]), {
+        chunkFrames: 2000,
+        overlapFrames: 200,
+      }))
+        chunks.push(chunk);
+      if (
+        chunks.length !== 3 ||
+        chunks[0].startFrame !== 0 ||
+        chunks[1].startFrame !== 1800 ||
+        chunks[2].endFrame !== 4800 ||
+        chunks[0].audio.size !== 8044
+      ) {
+        throw new Error("Unexpected chunk ranges");
+      }
+      const overlapA = new Uint8Array(
+        await chunks[0].audio.slice(44 + 1800 * 4).arrayBuffer(),
+      );
+      const overlapB = new Uint8Array(
+        await chunks[1].audio.slice(44, 44 + 200 * 4).arrayBuffer(),
+      );
+      if (
+        overlapA.length !== overlapB.length ||
+        overlapA.some((byte, index) => byte !== overlapB[index])
+      ) {
+        throw new Error("Chunk overlap differs from source");
+      }
+      const excerpt = await engine.extractWav(new Blob([source]), {
+        startFrame: 300,
+        endFrame: 900,
+      });
+      const excerptBytes = new Uint8Array(
+        await excerpt.audio.slice(44).arrayBuffer(),
+      );
+      const expectedBytes = source.slice(44 + 300 * 4, 44 + 900 * 4);
+      if (
+        excerpt.startFrame !== 300 ||
+        excerpt.endFrame !== 900 ||
+        excerptBytes.length !== expectedBytes.length ||
+        excerptBytes.some((byte, index) => byte !== expectedBytes[index])
+      ) {
+        throw new Error("Extracted range differs from source");
+      }
+      let rangeRejected = false;
+      try {
+        await engine.extractWav(new Blob([source]), {
+          startFrame: 0,
+          endFrame: 4801,
+        });
+      } catch {
+        rangeRejected = true;
+      }
+      if (!rangeRejected)
+        throw new Error("Out-of-range extraction was accepted");
+      let invalidOverlapRejected = false;
+      try {
+        await engine
+          .chunkWav(new Blob([source]), {
+            chunkFrames: 100,
+            overlapFrames: 100,
+          })
+          .next();
+      } catch {
+        invalidOverlapRejected = true;
+      }
+      if (!invalidOverlapRejected)
+        throw new Error("Invalid overlap was accepted");
+      const timed = await engine.extractWavSeconds(new Blob([source]), {
+        startSeconds: 0.01,
+        endSeconds: 0.02,
+      });
+      if (timed.startFrame !== 480 || timed.endFrame !== 960)
+        throw new Error("Unexpected time-to-frame rounding");
+      const emptyTimed = await engine.extractWavSeconds(new Blob([source]), {
+        startSeconds: 0.010001,
+        endSeconds: 0.010001,
+      });
+      if (
+        emptyTimed.audio.size !== 44 ||
+        emptyTimed.startFrame !== emptyTimed.endFrame
+      )
+        throw new Error("Empty time range was not empty");
+      const firstHalf = await engine.extractWav(new Blob([source]), {
+        startFrame: 0,
+        endFrame: 2400,
+      });
+      const secondHalf = await engine.extractWav(new Blob([source]), {
+        startFrame: 2400,
+        endFrame: 4800,
+      });
+      const mergedParts = [];
+      const mergedStats = await engine.mergeWav(
+        [firstHalf.audio, secondHalf.audio],
+        new WritableStream({
+          write(bytes) {
+            mergedParts.push(bytes);
+          },
+        }),
+      );
+      const merged = new Uint8Array(await new Blob(mergedParts).arrayBuffer());
+      if (
+        mergedStats.outputFrames !== 4800 ||
+        merged.length !== source.length ||
+        merged.slice(44).some((byte, index) => byte !== source[index + 44])
+      )
+        throw new Error("Merged WAV differs from source");
+      const mismatched = source.slice();
+      const mismatchedView = new DataView(mismatched.buffer);
+      mismatchedView.setUint32(24, 44100, true);
+      mismatchedView.setUint32(28, 44100 * 4, true);
+      let mismatchWrites = 0,
+        mismatchRejected = false;
+      try {
+        await engine.mergeWav(
+          [new Blob([source]), new Blob([mismatched])],
+          new WritableStream({
+            write() {
+              mismatchWrites++;
+            },
+          }),
+        );
+      } catch {
+        mismatchRejected = true;
+      }
+      if (!mismatchRejected || mismatchWrites)
+        throw new Error(
+          "Incompatible WAV merge was not rejected before writing",
+        );
+      const trimParts = [];
+      const trimmed = await engine.trimWav(
+        new Blob([source]),
+        [
+          { startFrame: 100, endFrame: 300 },
+          { startFrame: 900, endFrame: 1000 },
+        ],
+        new WritableStream({
+          write(bytes) {
+            trimParts.push(bytes);
+          },
+        }),
+      );
+      const trimBytes = new Uint8Array(await new Blob(trimParts).arrayBuffer());
+      const expectedTrim = new Uint8Array([
+        ...source.slice(44, 44 + 100 * 4),
+        ...source.slice(44 + 300 * 4, 44 + 900 * 4),
+        ...source.slice(44 + 1000 * 4),
+      ]);
+      if (
+        trimmed.outputFrames !== 4500 ||
+        trimmed.mapping.length !== 3 ||
+        trimmed.mapping[1].outputStartFrame !== 100 ||
+        trimBytes.length !== 44 + expectedTrim.length ||
+        trimBytes.slice(44).some((byte, index) => byte !== expectedTrim[index])
+      )
+        throw new Error("Trimmed WAV or mapping differs");
+      let trimWrites = 0,
+        invalidTrimRejected = false;
+      try {
+        await engine.trimWav(
+          new Blob([source]),
+          [
+            { startFrame: 100, endFrame: 300 },
+            { startFrame: 200, endFrame: 400 },
+          ],
+          new WritableStream({
+            write() {
+              trimWrites++;
+            },
+          }),
+        );
+      } catch {
+        invalidTrimRejected = true;
+      }
+      if (!invalidTrimRejected || trimWrites)
+        throw new Error(
+          "Overlapping trim intervals were not rejected before writing",
+        );
+      const emptyTrimParts = [];
+      const emptyTrim = await engine.trimWav(
+        new Blob([source]),
+        [{ startFrame: 0, endFrame: 4800 }],
+        new WritableStream({
+          write(bytes) {
+            emptyTrimParts.push(bytes);
+          },
+        }),
+      );
+      if (
+        emptyTrim.outputFrames !== 0 ||
+        emptyTrim.mapping.length !== 0 ||
+        new Blob(emptyTrimParts).size !== 44
+      )
+        throw new Error("Fully trimmed WAV was not empty");
+      const controller = new AbortController();
+      let aborted = false;
+      const abortStream = new WritableStream({
+        write() {},
+        abort() {
+          aborted = true;
+        },
+      });
+      try {
+        await engine.processWav(new Blob([source]), abortStream, {
+          ...opts,
+          normalizePeak: undefined,
+          signal: controller.signal,
+          onProgress(phase) {
+            if (phase === "process") controller.abort();
+          },
+        });
+        throw new Error("Expected cancellation");
+      } catch (error) {
+        if (!aborted || error.message === "Expected cancellation") throw error;
+      }
+      try {
+        await engine.processWav(
+          new Blob([new Uint8Array(12)]),
+          new WritableStream(),
+          opts,
+        );
+        throw new Error("Expected malformed WAV rejection");
+      } catch (error) {
+        if (error.message === "Expected malformed WAV rejection") throw error;
+      }
+      const rejectBeforeWrite = async (bytes) => {
+        let writes = 0,
+          rejected = false;
+        try {
+          await engine.processWav(
+            new Blob([bytes]),
+            new WritableStream({
+              write() {
+                writes++;
+              },
+            }),
+            opts,
+          );
+        } catch {
+          rejected = true;
+        }
+        if (!rejected || writes !== 0)
+          throw new Error("Invalid WAV was not rejected before writing");
+      };
+      await rejectBeforeWrite(source.slice(0, -1));
+      const unsupported = source.slice();
+      new DataView(unsupported.buffer).setUint16(20, 3, true);
+      await rejectBeforeWrite(unsupported);
+      const partialFrame = source.slice();
+      new DataView(partialFrame.buffer).setUint32(40, 4800 * 4 - 2, true);
+      await rejectBeforeWrite(partialFrame);
+      const clippedInput = source.slice();
+      const clippedView = new DataView(clippedInput.buffer);
+      for (let frame = 0; frame < 4800; frame++) {
+        const value = Math.floor(frame / 300) % 2 ? 32767 : -32768;
+        clippedView.setInt16(44 + frame * 4, value, true);
+        clippedView.setInt16(46 + frame * 4, value, true);
+      }
+      let clippedOutputBytes = 0;
+      const clippedResult = await engine.processWav(
+        new Blob([clippedInput]),
+        new WritableStream({
+          write(bytes) {
+            clippedOutputBytes += bytes.length;
+          },
+        }),
+        opts,
+      );
+      if (
+        clippedResult.appliedGain !== 0.8 ||
+        clippedResult.outputFrames !== 1600 ||
+        clippedOutputBytes !== 3244
+      )
+        throw new Error("Clipped input processing failed");
+      const empty = source.slice(0, 44);
+      const emptyView = new DataView(empty.buffer);
+      emptyView.setUint32(4, 36, true);
+      emptyView.setUint32(40, 0, true);
+      let emptyBytes = 0;
+      const emptyResult = await engine.processWav(
+        new Blob([empty]),
+        new WritableStream({
+          write(bytes) {
+            emptyBytes += bytes.length;
+          },
+        }),
+        opts,
+      );
+      if (
+        emptyResult.inputFrames !== 0 ||
+        emptyResult.outputFrames !== 0 ||
+        emptyBytes !== 44
+      )
+        throw new Error("Empty WAV processing failed");
+      result.textContent = "PASS";
+    } catch (error) {
+      result.textContent = `FAIL: ${String(error)}`;
+    }
+  </script>
+</html>

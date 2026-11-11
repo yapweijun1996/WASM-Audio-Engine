@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Audio reference comparison</title>
+  <label
+    >Local 48 kHz stereo PCM16 WAV <input id="file" type="file" accept=".wav"
+  /></label>
+  <pre id="result">Select a short local WAV excerpt</pre>
+  <script type="module">
+    import * as bindings from "../dist/wasm/wasm_audio_engine.js";
+    import { createAudioEngine } from "../dist/index.js";
+    const engine = await createAudioEngine(bindings);
+    const result = document.querySelector("#result");
+    document
+      .querySelector("#file")
+      .addEventListener("change", async (event) => {
+        result.textContent = "RUNNING";
+        try {
+          const file = event.target.files[0];
+          if (file.size > 12 * 1024 * 1024)
+            throw new Error("Use a short excerpt under 12 MiB");
+          const context = new OfflineAudioContext(2, 16000, 16000);
+          const reference = await context.decodeAudioData(
+            await file.arrayBuffer(),
+          );
+          if (
+            reference.numberOfChannels !== 2 ||
+            reference.sampleRate !== 16000
+          )
+            throw new Error("Unexpected reference format");
+          const pieces = [];
+          const stats = await engine.processWav(
+            file,
+            new WritableStream({
+              write(bytes) {
+                pieces.push(bytes);
+              },
+            }),
+            {
+              outputSampleRate: 16000,
+              outputChannels: 1,
+              silenceThreshold: 0.01,
+              minSilenceFrames: 24000,
+              waveformWindowFrames: 48000,
+              inputChunkFrames: 8192,
+            },
+          );
+          const output = new DataView(await new Blob(pieces).arrayBuffer());
+          if (stats.outputFrames !== reference.length)
+            throw new Error("Reference frame count differs");
+          const left = reference.getChannelData(0),
+            right = reference.getChannelData(1);
+          let sumX2 = 0,
+            sumY2 = 0,
+            dot = 0,
+            error2 = 0,
+            count = 0;
+          for (let i = 512; i < reference.length - 512; i++) {
+            const x = (left[i] + right[i]) * 0.5;
+            const y = output.getInt16(44 + i * 2, true) / 32768;
+            sumX2 += x * x;
+            sumY2 += y * y;
+            dot += x * y;
+            error2 += (x - y) ** 2;
+            count++;
+          }
+          const correlation = dot / Math.sqrt(sumX2 * sumY2);
+          const rmsRatio = Math.sqrt(sumY2 / sumX2);
+          const rmse = Math.sqrt(error2 / count);
+          if (!(correlation > 0.9 && rmsRatio > 0.8 && rmsRatio < 1.25))
+            throw new Error(
+              `Reference comparison failed: correlation ${correlation}, RMS ratio ${rmsRatio}`,
+            );
+          result.textContent = JSON.stringify({
+            status: "PASS",
+            correlation,
+            rmsRatio,
+            rmse,
+            frames: stats.outputFrames,
+            clippedSamples: stats.clippedSamples,
+          });
+        } catch (error) {
+          result.textContent = `FAIL: ${String(error)}`;
+        }
+      });
+  </script>
+</html>

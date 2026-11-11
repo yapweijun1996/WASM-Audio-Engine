@@ -1,0 +1,664 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audio Engine Lab</title>
+    <style>
+      :root {
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        color: #172536;
+        background: #f4f7f8;
+        font-synthesis: none;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      header {
+        background: #102d32;
+        color: white;
+        padding: 26px max(24px, calc((100vw - 1180px) / 2));
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+      }
+      .brand {
+        font-weight: 750;
+        letter-spacing: 0.03em;
+      }
+      .tag {
+        color: #a6d4c5;
+        font-size: 13px;
+      }
+      main {
+        max-width: 1180px;
+        margin: auto;
+        padding: 44px 24px 70px;
+      }
+      .eyebrow {
+        color: #28765f;
+        text-transform: uppercase;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        font-size: 12px;
+      }
+      h1 {
+        font-size: clamp(30px, 4vw, 46px);
+        letter-spacing: -0.045em;
+        margin: 10px 0;
+      }
+      h2 {
+        font-size: 19px;
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #62737c;
+        line-height: 1.55;
+        margin: 0;
+      }
+      .intro {
+        max-width: 690px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.8fr);
+        gap: 22px;
+        margin-top: 30px;
+      }
+      .card {
+        background: white;
+        border: 1px solid #e2ebea;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 8px 30px #214c4510;
+      }
+      .stack {
+        display: grid;
+        gap: 22px;
+      }
+      .drop {
+        display: block;
+        border: 1.5px dashed #8cbbae;
+        border-radius: 12px;
+        background: #f5fbf8;
+        padding: 25px;
+        margin-top: 20px;
+        cursor: pointer;
+      }
+      .drop strong {
+        display: block;
+        color: #164a3b;
+      }
+      .drop small {
+        display: block;
+        color: #607b72;
+        margin-top: 5px;
+      }
+      .drop input {
+        margin-top: 14px;
+        max-width: 100%;
+      }
+      label.field {
+        display: grid;
+        gap: 7px;
+        font-size: 13px;
+        font-weight: 650;
+        color: #40545c;
+      }
+      select,
+      input[type="number"] {
+        width: 100%;
+        border: 1px solid #d4e0de;
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+        color: #203b3c;
+        font: inherit;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin: 20px 0;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #40545c;
+        font-size: 14px;
+        margin: 16px 0;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button,
+      .download {
+        border: 0;
+        border-radius: 9px;
+        padding: 11px 16px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        background: #146e54;
+        color: white;
+      }
+      button.secondary {
+        background: #eaf1ef;
+        color: #31584e;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .status {
+        font-size: 13px;
+        margin-top: 15px;
+        min-height: 20px;
+      }
+      progress {
+        width: 100%;
+        height: 6px;
+        accent-color: #16805e;
+        margin-top: 8px;
+      }
+      .audio {
+        width: 100%;
+        margin-top: 12px;
+        height: 40px;
+      }
+      .muted {
+        font-size: 13px;
+      }
+      .wave {
+        width: 100%;
+        height: 135px;
+        background: #f3f8f6;
+        border-radius: 10px;
+        margin-top: 18px;
+        display: block;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .metric {
+        background: #f4f8f7;
+        border-radius: 9px;
+        padding: 12px;
+      }
+      .metric b {
+        display: block;
+        font-size: 17px;
+      }
+      .metric span {
+        color: #71837f;
+        font-size: 11px;
+      }
+      .silences {
+        margin: 15px 0 0;
+        padding-left: 20px;
+        color: #516b64;
+        font-size: 13px;
+        max-height: 130px;
+        overflow: auto;
+      }
+      .notice {
+        font-size: 12px;
+        color: #728780;
+        margin-top: 15px;
+      }
+      .result-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .pill {
+        font-size: 12px;
+        background: #e8f5ef;
+        color: #28765f;
+        border-radius: 20px;
+        padding: 6px 10px;
+      }
+      .hidden,
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 760px) {
+        header {
+          padding: 20px 24px;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        main {
+          padding-top: 30px;
+        }
+        .fields {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">◉ &nbsp; AUDIO ENGINE LAB</div>
+      <div class="tag">Local processing · Experimental</div>
+    </header>
+    <main>
+      <div class="eyebrow">WASM Audio Engine / Test workspace</div>
+      <h1>Listen closer.</h1>
+      <p class="intro">
+        Try the audio engine in your browser. Prepare a WAV, inspect its
+        waveform, and listen to the result — your audio stays on this device.
+      </p>
+      <div class="layout">
+        <div class="stack">
+          <section class="card">
+            <h2>01 &nbsp; Choose audio</h2>
+            <p class="muted">Select a classic PCM16 WAV file to begin.</p>
+            <label class="drop"
+              ><strong>Choose a WAV file</strong
+              ><small>Mono or stereo · 8–192 kHz · up to 8 MiB</small
+              ><input id="file" type="file" accept=".wav,audio/wav" /></label
+            ><button
+              id="sample"
+              class="secondary"
+              type="button"
+              style="margin-top: 12px"
+            >
+              Try a generated sample
+            </button>
+            <audio id="source" class="audio" controls hidden></audio>
+            <p class="notice">
+              MP3, M4A, AAC and Opus are not supported by this test page. The
+              size limit exists because this page keeps the output in memory.
+            </p>
+          </section>
+          <section class="card">
+            <h2>02 &nbsp; Processing settings</h2>
+            <p class="muted">
+              Adjust the output and detection settings before processing.
+            </p>
+            <div class="fields">
+              <label class="field"
+                >Output sample rate<select id="rate">
+                  <option value="16000">16,000 Hz</option>
+                  <option value="44100">44,100 Hz</option>
+                  <option value="48000">48,000 Hz</option>
+                </select></label
+              ><label class="field"
+                >Output channels<select id="channels">
+                  <option value="1">Mono</option>
+                  <option value="2">Stereo</option>
+                </select></label
+              ><label class="field"
+                >Silence threshold<input
+                  id="threshold"
+                  type="number"
+                  value="0.01"
+                  min="0"
+                  max="1"
+                  step="0.001" /></label
+              ><label class="field"
+                >Minimum silence (source frames)<input
+                  id="min-silence"
+                  type="number"
+                  value="4800"
+                  min="1"
+                  step="1"
+              /></label>
+            </div>
+            <label class="check"
+              ><input id="normalize" type="checkbox" checked /> Normalize peak
+              to 80%</label
+            >
+            <div class="actions">
+              <button id="prepare" type="button" disabled>Process audio</button
+              ><button id="cancel" class="secondary" type="button" disabled>
+                Cancel
+              </button>
+            </div>
+            <p id="status" class="status" role="status">
+              Loading audio engine…
+            </p>
+            <progress
+              id="progress"
+              max="1"
+              value="0"
+              aria-label="Processing progress"
+            ></progress>
+          </section>
+        </div>
+        <div class="stack">
+          <section class="card">
+            <h2>03 &nbsp; Analysis</h2>
+            <p class="muted">
+              Waveform and quiet intervals use the original recording timeline.
+            </p>
+            <canvas
+              id="waveform"
+              class="wave"
+              width="660"
+              height="270"
+              aria-label="Source audio waveform"
+            ></canvas>
+            <div class="metrics">
+              <div class="metric">
+                <b id="duration">—</b><span>INPUT DURATION</span>
+              </div>
+              <div class="metric">
+                <b id="silence-count">—</b><span>QUIET INTERVALS</span>
+              </div>
+              <div class="metric">
+                <b id="gain">—</b><span>APPLIED GAIN</span>
+              </div>
+            </div>
+            <ol id="silences" class="silences"></ol>
+            <p class="notice">
+              Low energy is not voice detection. Quiet speech and background
+              noise can affect the result.
+            </p>
+          </section>
+          <section class="card">
+            <h2>04 &nbsp; Listen &amp; export</h2>
+            <p class="muted" id="output-note">
+              Your processed WAV will appear here.
+            </p>
+            <audio id="output" class="audio" controls hidden></audio>
+            <div class="result-actions">
+              <a id="download" class="download" hidden>Download WAV</a
+              ><span id="clip-count" class="pill" hidden></span>
+            </div>
+          </section>
+        </div>
+      </div>
+      <section class="card" style="margin-top: 22px">
+        <h2>05 &nbsp; More engine tests</h2>
+        <p class="muted">
+          Process the source above first, then try excerpts, detected quiet
+          interval removal, chunks, merging, or a frequency analysis.
+        </p>
+        <div class="fields">
+          <label class="field"
+            >Excerpt start (seconds)<input
+              id="extract-start"
+              type="number"
+              min="0"
+              step="0.1"
+              value="0" /></label
+          ><label class="field"
+            >Excerpt end (seconds)<input
+              id="extract-end"
+              type="number"
+              min="0"
+              step="0.1"
+              value="1" /></label
+          ><label class="field"
+            >Chunk length (seconds)<input
+              id="chunk-length"
+              type="number"
+              min="1"
+              step="1"
+              value="10" /></label
+          ><label class="field"
+            >Merge with another PCM16 WAV<input
+              id="merge-file"
+              type="file"
+              accept=".wav,audio/wav"
+          /></label>
+        </div>
+        <div class="actions">
+          <button id="extract-test" class="secondary" disabled>
+            Extract excerpt</button
+          ><button id="trim-test" class="secondary" disabled>
+            Remove detected quiet intervals</button
+          ><button id="chunk-test" class="secondary" disabled>
+            Make chunks</button
+          ><button id="merge-test" class="secondary" disabled>Merge WAVs</button
+          ><button id="spectrum-test" class="secondary" disabled>
+            Analyze frequency
+          </button>
+        </div>
+        <p class="notice">
+          Removing quiet intervals can remove speech. Merging requires matching
+          sample rates and channel counts. Chunk output is limited to 50 files
+          in this test page.
+        </p>
+        <p id="tools-status" class="status" role="status">
+          Process a WAV to enable these tests.
+        </p>
+        <div id="tools-output" class="result-actions"></div>
+      </section>
+    </main>
+    <script type="module">
+      import * as bindings from "../dist/wasm/wasm_audio_engine.js";
+      import { createAudioEngine } from "../dist/index.js";
+      import { setupTools } from "./tools.js";
+      const $ = (id) => document.getElementById(id);
+      const file = $("file"),
+        prepare = $("prepare"),
+        cancel = $("cancel"),
+        status = $("status"),
+        progress = $("progress"),
+        download = $("download"),
+        source = $("source"),
+        output = $("output");
+      let controller, inputUrl, outputUrl, engine;
+      function clearOutput() {
+        if (outputUrl) URL.revokeObjectURL(outputUrl);
+        outputUrl = undefined;
+        output.removeAttribute("src");
+        output.load();
+        output.hidden = true;
+        download.hidden = true;
+        $("clip-count").hidden = true;
+        $("output-note").textContent = "Your processed WAV will appear here.";
+        $("duration").textContent = "—";
+        $("silence-count").textContent = "—";
+        $("gain").textContent = "—";
+        $("silences").replaceChildren();
+        const canvas = $("waveform");
+        canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+      }
+      file.addEventListener("change", () => {
+        document.dispatchEvent(new Event("audio-source-change"));
+        if (inputUrl) URL.revokeObjectURL(inputUrl);
+        inputUrl = undefined;
+        clearOutput();
+        progress.value = 0;
+        if (file.files[0]) {
+          inputUrl = URL.createObjectURL(file.files[0]);
+          source.src = inputUrl;
+          source.hidden = false;
+          status.textContent = "Ready to process locally.";
+        } else {
+          source.removeAttribute("src");
+          source.load();
+          source.hidden = true;
+          status.textContent = "Choose a WAV file to begin.";
+        }
+      });
+      $("sample").addEventListener("click", () => {
+        const frames = 48000,
+          buffer = new ArrayBuffer(44 + frames * 2),
+          view = new DataView(buffer);
+        const text = (offset, value) =>
+          [...value].forEach((char, index) =>
+            view.setUint8(offset + index, char.charCodeAt(0)),
+          );
+        text(0, "RIFF");
+        view.setUint32(4, buffer.byteLength - 8, true);
+        text(8, "WAVE");
+        text(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, 16000, true);
+        view.setUint32(28, 32000, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        text(36, "data");
+        view.setUint32(40, frames * 2, true);
+        for (let i = 0; i < frames; i++)
+          view.setInt16(
+            44 + i * 2,
+            i < 16000 || i >= 32000
+              ? Math.round(6000 * Math.sin((2 * Math.PI * 440 * i) / 16000))
+              : 0,
+            true,
+          );
+        const selection = new DataTransfer();
+        selection.items.add(
+          new File([buffer], "generated-sample.wav", { type: "audio/wav" }),
+        );
+        file.files = selection.files;
+        file.dispatchEvent(new Event("change"));
+      });
+      cancel.addEventListener("click", () => controller?.abort());
+      try {
+        engine = await createAudioEngine(bindings);
+        const tools = setupTools(engine);
+        status.textContent = "Choose a WAV file to begin.";
+        prepare.disabled = false;
+        prepare.addEventListener("click", async () => {
+          const input = file.files[0];
+          tools.reset();
+          if (!input) {
+            status.textContent = "Choose a WAV file first.";
+            return;
+          }
+          if (input.size > 8 * 1024 * 1024) {
+            status.textContent = "This test page accepts files up to 8 MiB.";
+            return;
+          }
+          const threshold = Number($("threshold").value),
+            minSilence = Number($("min-silence").value);
+          if (
+            !Number.isFinite(threshold) ||
+            threshold < 0 ||
+            threshold > 1 ||
+            !Number.isSafeInteger(minSilence) ||
+            minSilence < 1
+          ) {
+            status.textContent =
+              "Enter a threshold from 0 to 1 and a positive whole number of source frames.";
+            return;
+          }
+          clearOutput();
+          controller = new AbortController();
+          prepare.disabled = true;
+          file.disabled = true;
+          $("sample").disabled = true;
+          cancel.disabled = false;
+          progress.value = 0;
+          const pieces = [],
+            waveform = [],
+            quiet = [];
+          let outputBytes = 0;
+          try {
+            const result = await engine.processWav(
+              input,
+              new WritableStream({
+                write(bytes) {
+                  outputBytes += bytes.length;
+                  if (outputBytes > 32 * 1024 * 1024)
+                    throw new Error(
+                      "Output exceeds this page's 32 MiB memory limit.",
+                    );
+                  pieces.push(bytes);
+                },
+              }),
+              {
+                outputSampleRate: Number($("rate").value),
+                outputChannels: Number($("channels").value),
+                normalizePeak: $("normalize").checked ? 0.8 : undefined,
+                silenceThreshold: threshold,
+                minSilenceFrames: minSilence,
+                waveformWindowFrames: 2048,
+                signal: controller.signal,
+                onSilence(start, end) {
+                  quiet.push([start, end]);
+                },
+                onWaveform(start, end, min, max) {
+                  waveform.push([min, max]);
+                },
+                onProgress(phase, completed, total) {
+                  status.textContent = `${phase}: ${completed} / ${total} frames`;
+                  progress.value = total ? completed / total : 1;
+                },
+              },
+            );
+            tools.setSource(input, result, quiet);
+            outputUrl = URL.createObjectURL(
+              new Blob(pieces, { type: "audio/wav" }),
+            );
+            output.src = outputUrl;
+            output.hidden = false;
+            download.href = outputUrl;
+            download.download = "prepared.wav";
+            download.hidden = false;
+            $("output-note").textContent =
+              `${result.outputSampleRate.toLocaleString()} Hz · ${$("channels").value === "1" ? "Mono" : "Stereo"} · ${result.outputFrames.toLocaleString()} frames`;
+            $("clip-count").textContent =
+              `${result.clippedSamples} saturated samples`;
+            $("clip-count").hidden = false;
+            $("duration").textContent =
+              `${(result.inputFrames / result.inputSampleRate).toFixed(1)}s`;
+            $("silence-count").textContent = quiet.length;
+            $("gain").textContent = `${result.appliedGain.toFixed(2)}×`;
+            for (const [start, end] of quiet.slice(0, 100)) {
+              const li = document.createElement("li");
+              li.textContent = `${(start / result.inputSampleRate).toFixed(2)}s – ${(end / result.inputSampleRate).toFixed(2)}s`;
+              $("silences").append(li);
+            }
+            if (quiet.length > 100) {
+              const li = document.createElement("li");
+              li.textContent = `Showing 100 of ${quiet.length} intervals.`;
+              $("silences").append(li);
+            }
+            const canvas = $("waveform"),
+              ctx = canvas.getContext("2d"),
+              mid = canvas.height / 2;
+            ctx.strokeStyle = "#258b6b";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            waveform.forEach(([min, max], i) => {
+              const x = ((i + 0.5) * canvas.width) / waveform.length;
+              ctx.moveTo(x, mid - max * mid);
+              ctx.lineTo(x, mid - min * mid);
+            });
+            ctx.stroke();
+            status.textContent =
+              "Processing complete. Your audio stayed on this device.";
+            progress.value = 1;
+          } catch (error) {
+            clearOutput();
+            status.textContent = `Processing stopped: ${String(error)}`;
+          } finally {
+            prepare.disabled = false;
+            file.disabled = false;
+            $("sample").disabled = false;
+            cancel.disabled = true;
+            controller = undefined;
+          }
+        });
+      } catch (error) {
+        status.textContent = `Engine failed to load: ${String(error)}. Build the SDK and serve the repository over localhost.`;
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Real WAV browser validation</title>
+  <label>Local WAV <input id="file" type="file" accept=".wav" /></label>
+  <pre id="result">Select a local PCM16 WAV file</pre>
+  <script type="module">
+    import * as bindings from "/target/browser/wasm_audio_engine.js";
+    import { createAudioEngine } from "/dist/index.js";
+    const engine = await createAudioEngine(bindings);
+    const wasm = await bindings.default();
+    const result = document.querySelector("#result");
+    document
+      .querySelector("#file")
+      .addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        let bytesWritten = 0,
+          points = 0,
+          intervals = 0,
+          maxJsHeap = 0,
+          inputPeak = 0,
+          outputPeak = 0,
+          outputSquares = 0,
+          outputSamples = 0;
+        const start = performance.now();
+        result.textContent = "RUNNING";
+        try {
+          const output = new WritableStream({
+            write(bytes) {
+              if (bytesWritten > 0) {
+                const view = new DataView(
+                  bytes.buffer,
+                  bytes.byteOffset,
+                  bytes.byteLength,
+                );
+                for (let offset = 0; offset < bytes.byteLength; offset += 2) {
+                  const sample = view.getInt16(offset, true) / 32768;
+                  outputPeak = Math.max(outputPeak, Math.abs(sample));
+                  outputSquares += sample * sample;
+                  outputSamples++;
+                }
+              }
+              bytesWritten += bytes.byteLength;
+            },
+          });
+          const stats = await engine.processWav(file, output, {
+            outputSampleRate: 16000,
+            outputChannels: 1,
+            normalizePeak: 0.8,
+            silenceThreshold: 0.01,
+            minSilenceFrames: 24000,
+            waveformWindowFrames: 48000,
+            inputChunkFrames: 8192,
+            onSilence() {
+              intervals++;
+            },
+            onWaveform(_start, _end, min, max) {
+              points++;
+              inputPeak = Math.max(inputPeak, Math.abs(min), Math.abs(max));
+            },
+            onProgress(phase, completed, total) {
+              result.dataset.progress = `${phase}: ${completed}/${total}`;
+              maxJsHeap = Math.max(
+                maxJsHeap,
+                performance.memory?.usedJSHeapSize ?? 0,
+              );
+            },
+          });
+          const expected = Math.ceil(
+            (stats.inputFrames * 16000) / stats.inputSampleRate,
+          );
+          if (
+            stats.outputFrames !== expected ||
+            bytesWritten !== 44 + expected * 2 ||
+            points !== Math.ceil(stats.inputFrames / 48000) ||
+            outputSamples !== expected ||
+            (inputPeak > 0.01 && outputPeak < 0.001)
+          )
+            throw new Error("Unexpected output frame or byte count");
+          result.textContent = JSON.stringify({
+            status: "PASS",
+            elapsedMs: performance.now() - start,
+            sampledJsHeapBytes: maxJsHeap,
+            wasmLinearMemoryBytes: wasm.memory.buffer.byteLength,
+            bytesWritten,
+            points,
+            intervals,
+            inputPeak,
+            outputPeak,
+            outputRms: outputSamples
+              ? Math.sqrt(outputSquares / outputSamples)
+              : 0,
+            stats,
+          });
+        } catch (error) {
+          result.textContent = `FAIL: ${String(error)}`;
+        }
+      });
+  </script>
+</html>

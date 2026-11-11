@@ -1,0 +1,17 @@
+﻿<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>Hound WASM validation</title>
+  <pre id="result">Running</pre>
+  <script type="module">
+    import init, {
+      validate_hound_pcm16,
+    } from "/target/validation/wasm_audio_engine.js";
+    try {
+      await init();
+      if (!validate_hound_pcm16()) throw new Error("PCM16 round-trip mismatch");
+      document.getElementById("result").textContent = "PASS";
+    } catch (error) {
+      document.getElementById("result").textContent = `FAIL: ${String(error)}`;
+    }
+  </script>
+</html>
