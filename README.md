@@ -75,6 +75,8 @@ The project is licensed under the [MIT License](LICENSE), which permits commerci
 
 ## GitHub Pages deployment
 
+Live demo: [Audio Engine Lab](https://yapweijun1996.github.io/WASM-Audio-Engine/).
+
 The `Deploy audio engine demo` workflow builds and publishes the test UI on pushes to `main`, or through `workflow_dispatch`. GitHub Pages must use **GitHub Actions** as its source. The build runs Rust and TypeScript checks, verifies dependency notices, installs wasm-bindgen CLI 0.2.130, builds the release WASM, and creates a whitelisted `_site/` artifact. Only the deploy job receives `pages: write` and `id-token: write` permissions. Action revisions are pinned to commit SHAs.
 
 The site root redirects to `./examples/`; keeping `examples/` beside `dist/` preserves relative module and WASM URLs under `/WASM-Audio-Engine/`. `build.json` records the deployed source revision and asset hashes. Source files, tests, local audio, native artifacts, and dependency directories are excluded. This deployment publishes a browser demo, not an npm package or native SDK release. Processing remains local after loading the static assets; the existing WAV and memory limits apply.
