@@ -71,3 +71,14 @@ After `npm run build:wasm` and `npm run build`, serve the repository root locall
 ## Licensing
 
 The project is licensed under the [MIT License](LICENSE), which permits commercial use subject to its terms. See [DEPENDENCIES.md](DEPENDENCIES.md) and the generated [third-party license inventory](THIRD_PARTY_NOTICES.txt). Before release, review exact dependency versions, transitive dependencies, required license notices, and applicable codec patent considerations. Codec support is not supplied automatically by WebAssembly.
+
+
+## GitHub Pages deployment
+
+The `Deploy audio engine demo` workflow builds and publishes the test UI on pushes to `main`, or through `workflow_dispatch`. GitHub Pages must use **GitHub Actions** as its source. The build runs Rust and TypeScript checks, verifies dependency notices, installs wasm-bindgen CLI 0.2.130, builds the release WASM, and creates a whitelisted `_site/` artifact. Only the deploy job receives `pages: write` and `id-token: write` permissions. Action revisions are pinned to commit SHAs.
+
+The site root redirects to `./examples/`; keeping `examples/` beside `dist/` preserves relative module and WASM URLs under `/WASM-Audio-Engine/`. `build.json` records the deployed source revision and asset hashes. Source files, tests, local audio, native artifacts, and dependency directories are excluded. This deployment publishes a browser demo, not an npm package or native SDK release. Processing remains local after loading the static assets; the existing WAV and memory limits apply.
+
+After building the SDK locally, create a fresh output directory with `python scripts/build_site.py --revision <full-git-sha>` and verify it with `python scripts/check_site.py _site --revision <full-git-sha>`. The builder refuses to overwrite an existing output directory; use `--output <new-directory>` when testing another build. Serve the repository root and open `/_site/` to test a project-style subpath.
+
+For rollback, revert the unwanted site change on `main` and push the revert so the same checked workflow redeploys the previous behavior. Do not change the Pages source to a repository branch or publish the repository root directly.

@@ -78,3 +78,10 @@ To test manually, serve the repository root with `python -m http.server 18786 --
 ## Project license publication
 
 LICENSE alone was committed and pushed to GitHub main as `ed0f69a88418b871008ca4274ff89df5c4488975`. `git ls-remote` confirmed the exact remote SHA, and the raw LICENSE at that immutable SHA was read back and matched the local file after line-ending normalization. No hosted CI/deployment workflow was present in the checked remote tree. SDK implementation and updated documentation remain local working-tree changes; this license publication is not an SDK package release.
+
+
+## GitHub Pages deployment candidate
+
+The user explicitly authorized GitHub Actions deployment and selected GitHub Actions as the Pages source. `.github/workflows/pages.yml` builds on pushes to main or manual dispatch. Build steps have read-only repository permissions; only the separate deploy job has Pages/OIDC write permissions. Official GitHub Actions revisions are pinned. Main deployments share one concurrency group.
+
+Local candidate checks passed: workflow YAML structure, TypeScript formatting and error-contract tests, a whitelisted static artifact, its revision/hashes, rejection of an extra file, and rejection of a mismatched source revision. The artifact root redirects to examples/; a Chrome run served below `/_site/` successfully loaded all relative JS/WASM assets, processed the generated sample, and exposed the download. Only runtime files and licenses are copied, with no source tree, private recordings, tests, native builds, or node_modules. Live workflow and Pages acceptance must be recorded after publication; these local checks alone do not establish a deployed site.
