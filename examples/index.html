@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="manifest" href="../manifest.webmanifest" />
+    <meta name="theme-color" content="#102d32" />
+    <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
     <title>Audio Engine Lab</title>
     <link
       rel="icon"
@@ -29,6 +32,39 @@
         justify-content: space-between;
         align-items: center;
         gap: 20px;
+      }
+      header {
+        flex-wrap: wrap;
+      }
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .language {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 13px;
+      }
+      .language select {
+        width: auto;
+        max-width: 180px;
+      }
+      .update-banner {
+        padding: 16px 24px;
+        background: #e8f5ef;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      footer {
+        margin-top: 24px;
+      }
+      footer p {
+        margin-bottom: 8px;
       }
       .brand {
         font-weight: 750;
@@ -260,23 +296,87 @@
   <body>
     <header>
       <div class="brand">◉ &nbsp; AUDIO ENGINE LAB</div>
-      <div class="tag">Local processing · Experimental</div>
+      <div class="toolbar">
+        <div class="tag">
+          <span data-i18n="Local processing · Experimental"
+            >Local processing · Experimental</span
+          >
+        </div>
+        <label class="language"
+          ><span data-i18n="Language">Language</span
+          ><select
+            id="language"
+            data-i18n-aria="Language"
+            aria-label="Language"
+          >
+            <option value="en" lang="en">English</option>
+            <option value="zh-Hans" lang="zh-Hans">
+              &#31616;&#20307;&#20013;&#25991;
+            </option>
+            <option value="ms" lang="ms">Bahasa Melayu</option>
+          </select></label
+        >
+        <button id="install" type="button" hidden data-i18n="Install app">
+          Install app
+        </button>
+        <button
+          id="review-update"
+          type="button"
+          hidden
+          data-i18n="Review update"
+        >
+          Review update
+        </button>
+      </div>
     </header>
+    <aside id="pwa-update" class="update-banner" hidden role="status">
+      <p id="update-message"></p>
+      <button id="apply-update" type="button" data-i18n="Update and reload">
+        Update and reload</button
+      ><button
+        id="later-update"
+        class="secondary"
+        type="button"
+        data-i18n="Later"
+      >
+        Later
+      </button>
+    </aside>
     <main>
-      <div class="eyebrow">WASM Audio Engine / Test workspace</div>
-      <h1>Listen closer.</h1>
+      <div class="eyebrow">
+        <span data-i18n="WASM Audio Engine / Test workspace"
+          >WASM Audio Engine / Test workspace</span
+        >
+      </div>
+      <h1><span data-i18n="Listen closer.">Listen closer.</span></h1>
       <p class="intro">
-        Try the audio engine in your browser. Prepare a WAV, inspect its
-        waveform, and listen to the result — your audio stays on this device.
+        <span
+          data-i18n="Try the audio engine in your browser. Prepare a WAV, inspect its waveform, and listen to the result — your audio stays on this device."
+        >
+          Try the audio engine in your browser. Prepare a WAV, inspect its
+          waveform, and listen to the result — your audio stays on this device.
+        </span>
       </p>
       <div class="layout">
         <div class="stack">
           <section class="card">
-            <h2>01 &nbsp; Choose audio</h2>
-            <p class="muted">Select a classic PCM16 WAV file to begin.</p>
+            <h2>
+              <span data-i18n="01 Choose audio">01 &nbsp; Choose audio</span>
+            </h2>
+            <p class="muted">
+              <span data-i18n="Select a classic PCM16 WAV file to begin."
+                >Select a classic PCM16 WAV file to begin.</span
+              >
+            </p>
             <label class="drop"
-              ><strong>Choose a WAV file</strong
-              ><small>Mono or stereo · 8–192 kHz · up to 8 MiB</small
+              ><strong
+                ><span data-i18n="Choose a WAV file"
+                  >Choose a WAV file</span
+                ></strong
+              ><small
+                ><span data-i18n="Mono or stereo · 8–192 kHz · up to 8 MiB"
+                  >Mono or stereo · 8–192 kHz · up to 8 MiB</span
+                ></small
               ><input id="file" type="file" accept=".wav,audio/wav" /></label
             ><button
               id="sample"
@@ -284,33 +384,57 @@
               type="button"
               style="margin-top: 12px"
             >
-              Try a generated sample
+              <span data-i18n="Try a generated sample">
+                Try a generated sample
+              </span>
             </button>
-            <audio id="source" class="audio" controls hidden></audio>
+            <audio
+              data-i18n-aria="Source audio playback"
+              aria-label="Source audio playback"
+              id="source"
+              class="audio"
+              controls
+              hidden
+            ></audio>
             <p class="notice">
-              MP3, M4A, AAC and Opus are not supported by this test page. The
-              size limit exists because this page keeps the output in memory.
+              <span
+                data-i18n="MP3, M4A, AAC and Opus are not supported by this test page. The size limit exists because this page keeps the output in memory."
+              >
+                MP3, M4A, AAC and Opus are not supported by this test page. The
+                size limit exists because this page keeps the output in memory.
+              </span>
             </p>
           </section>
           <section class="card">
-            <h2>02 &nbsp; Processing settings</h2>
+            <h2>
+              <span data-i18n="02 Processing settings"
+                >02 &nbsp; Processing settings</span
+              >
+            </h2>
             <p class="muted">
-              Adjust the output and detection settings before processing.
+              <span
+                data-i18n="Adjust the output and detection settings before processing."
+              >
+                Adjust the output and detection settings before processing.
+              </span>
             </p>
             <div class="fields">
               <label class="field"
-                >Output sample rate<select id="rate">
+                ><span data-i18n="Output sample rate">Output sample rate</span
+                ><select id="rate">
                   <option value="16000">16,000 Hz</option>
                   <option value="44100">44,100 Hz</option>
                   <option value="48000">48,000 Hz</option>
                 </select></label
               ><label class="field"
-                >Output channels<select id="channels">
-                  <option value="1">Mono</option>
-                  <option value="2">Stereo</option>
+                ><span data-i18n="Output channels">Output channels</span
+                ><select id="channels">
+                  <option value="1" data-i18n="Mono">Mono</option>
+                  <option value="2" data-i18n="Stereo">Stereo</option>
                 </select></label
               ><label class="field"
-                >Silence threshold<input
+                ><span data-i18n="Silence threshold">Silence threshold</span
+                ><input
                   id="threshold"
                   type="number"
                   value="0.01"
@@ -318,7 +442,9 @@
                   max="1"
                   step="0.001" /></label
               ><label class="field"
-                >Minimum silence (source frames)<input
+                ><span data-i18n="Minimum silence (source frames)"
+                  >Minimum silence (source frames)</span
+                ><input
                   id="min-silence"
                   type="number"
                   value="4800"
@@ -327,31 +453,43 @@
               /></label>
             </div>
             <label class="check"
-              ><input id="normalize" type="checkbox" checked /> Normalize peak
-              to 80%</label
+              ><input id="normalize" type="checkbox" checked /><span
+                data-i18n="Normalize peak to 80%"
+              >
+                Normalize peak to 80%</span
+              ></label
             >
             <div class="actions">
-              <button id="prepare" type="button" disabled>Process audio</button
+              <button id="prepare" type="button" disabled>
+                <span data-i18n="Process audio">Process audio</span></button
               ><button id="cancel" class="secondary" type="button" disabled>
-                Cancel
+                <span data-i18n="Cancel"> Cancel </span>
               </button>
             </div>
             <p id="status" class="status" role="status">
-              Loading audio engine…
+              <span data-i18n="Loading audio engine…">
+                Loading audio engine…
+              </span>
             </p>
             <progress
               id="progress"
               max="1"
               value="0"
               aria-label="Processing progress"
+              data-i18n-aria="Processing progress"
             ></progress>
           </section>
         </div>
         <div class="stack">
           <section class="card">
-            <h2>03 &nbsp; Analysis</h2>
+            <h2><span data-i18n="03 Analysis">03 &nbsp; Analysis</span></h2>
             <p class="muted">
-              Waveform and quiet intervals use the original recording timeline.
+              <span
+                data-i18n="Waveform and quiet intervals use the original recording timeline."
+              >
+                Waveform and quiet intervals use the original recording
+                timeline.
+              </span>
             </p>
             <canvas
               id="waveform"
@@ -359,99 +497,176 @@
               width="660"
               height="270"
               aria-label="Source audio waveform"
+              data-i18n-aria="Source audio waveform"
             ></canvas>
             <div class="metrics">
               <div class="metric">
-                <b id="duration">—</b><span>INPUT DURATION</span>
+                <b id="duration">—</b
+                ><span
+                  ><span data-i18n="INPUT DURATION">INPUT DURATION</span></span
+                >
               </div>
               <div class="metric">
-                <b id="silence-count">—</b><span>QUIET INTERVALS</span>
+                <b id="silence-count">—</b
+                ><span
+                  ><span data-i18n="QUIET INTERVALS"
+                    >QUIET INTERVALS</span
+                  ></span
+                >
               </div>
               <div class="metric">
-                <b id="gain">—</b><span>APPLIED GAIN</span>
+                <b id="gain">—</b
+                ><span><span data-i18n="APPLIED GAIN">APPLIED GAIN</span></span>
               </div>
             </div>
             <ol id="silences" class="silences"></ol>
             <p class="notice">
-              Low energy is not voice detection. Quiet speech and background
-              noise can affect the result.
+              <span
+                data-i18n="Low energy is not voice detection. Quiet speech and background noise can affect the result."
+              >
+                Low energy is not voice detection. Quiet speech and background
+                noise can affect the result.
+              </span>
             </p>
           </section>
           <section class="card">
-            <h2>04 &nbsp; Listen &amp; export</h2>
+            <h2>
+              <span data-i18n="04 Listen &amp; export"
+                >04 &nbsp; Listen &amp; export</span
+              >
+            </h2>
             <p class="muted" id="output-note">
-              Your processed WAV will appear here.
+              <span data-i18n="Your processed WAV will appear here.">
+                Your processed WAV will appear here.
+              </span>
             </p>
-            <audio id="output" class="audio" controls hidden></audio>
+            <audio
+              data-i18n-aria="Processed audio playback"
+              aria-label="Processed audio playback"
+              id="output"
+              class="audio"
+              controls
+              hidden
+            ></audio>
             <div class="result-actions">
-              <a id="download" class="download" hidden>Download WAV</a
+              <a id="download" class="download" hidden
+                ><span data-i18n="Download WAV">Download WAV</span></a
               ><span id="clip-count" class="pill" hidden></span>
             </div>
           </section>
         </div>
       </div>
       <section class="card" style="margin-top: 22px">
-        <h2>05 &nbsp; More engine tests</h2>
+        <h2>
+          <span data-i18n="05 More engine tests"
+            >05 &nbsp; More engine tests</span
+          >
+        </h2>
         <p class="muted">
-          Process the source above first, then try excerpts, detected quiet
-          interval removal, chunks, merging, or a frequency analysis.
+          <span
+            data-i18n="Process the source above first, then try excerpts, detected quiet interval removal, chunks, merging, or a frequency analysis."
+          >
+            Process the source above first, then try excerpts, detected quiet
+            interval removal, chunks, merging, or a frequency analysis.
+          </span>
         </p>
         <div class="fields">
           <label class="field"
-            >Excerpt start (seconds)<input
+            ><span data-i18n="Excerpt start (seconds)"
+              >Excerpt start (seconds)</span
+            ><input
               id="extract-start"
               type="number"
               min="0"
               step="0.1"
               value="0" /></label
           ><label class="field"
-            >Excerpt end (seconds)<input
+            ><span data-i18n="Excerpt end (seconds)">Excerpt end (seconds)</span
+            ><input
               id="extract-end"
               type="number"
               min="0"
               step="0.1"
               value="1" /></label
           ><label class="field"
-            >Chunk length (seconds)<input
+            ><span data-i18n="Chunk length (seconds)"
+              >Chunk length (seconds)</span
+            ><input
               id="chunk-length"
               type="number"
               min="1"
               step="1"
               value="10" /></label
           ><label class="field"
-            >Merge with another PCM16 WAV<input
-              id="merge-file"
-              type="file"
-              accept=".wav,audio/wav"
+            ><span data-i18n="Merge with another PCM16 WAV"
+              >Merge with another PCM16 WAV</span
+            ><input id="merge-file" type="file" accept=".wav,audio/wav"
           /></label>
         </div>
         <div class="actions">
           <button id="extract-test" class="secondary" disabled>
-            Extract excerpt</button
+            <span data-i18n="Extract excerpt"> Extract excerpt</span></button
           ><button id="trim-test" class="secondary" disabled>
-            Remove detected quiet intervals</button
+            <span data-i18n="Remove detected quiet intervals">
+              Remove detected quiet intervals</span
+            ></button
           ><button id="chunk-test" class="secondary" disabled>
-            Make chunks</button
-          ><button id="merge-test" class="secondary" disabled>Merge WAVs</button
+            <span data-i18n="Make chunks"> Make chunks</span></button
+          ><button id="merge-test" class="secondary" disabled>
+            <span data-i18n="Merge WAVs">Merge WAVs</span></button
           ><button id="spectrum-test" class="secondary" disabled>
-            Analyze frequency
+            <span data-i18n="Analyze frequency"> Analyze frequency </span>
           </button>
         </div>
         <p class="notice">
-          Removing quiet intervals can remove speech. Merging requires matching
-          sample rates and channel counts. Chunk output is limited to 50 files
-          in this test page.
+          <span
+            data-i18n="Removing quiet intervals can remove speech. Merging requires matching sample rates and channel counts. Chunk output is limited to 50 files in this test page."
+          >
+            Removing quiet intervals can remove speech. Merging requires
+            matching sample rates and channel counts. Chunk output is limited to
+            50 files in this test page.
+          </span>
         </p>
         <p id="tools-status" class="status" role="status">
-          Process a WAV to enable these tests.
+          <span data-i18n="Process a WAV to enable these tests.">
+            Process a WAV to enable these tests.
+          </span>
         </p>
         <div id="tools-output" class="result-actions"></div>
       </section>
+      <footer class="notice">
+        <p
+          id="offline-status"
+          role="status"
+          data-i18n="Preparing offline resources…"
+        >
+          Preparing offline resources…
+        </p>
+        <p
+          data-i18n="Audio results are temporary. Only app resources and your language preference are saved."
+        >
+          Audio results are temporary. Only app resources and your language
+          preference are saved.
+        </p>
+        <details>
+          <summary data-i18n="Install help">Install help</summary>
+          <p
+            data-i18n="Use your browser's Install app menu. On iPhone or iPad, choose Share, then Add to Home Screen."
+          >
+            Use your browser's Install app menu. On iPhone or iPad, choose
+            Share, then Add to Home Screen.
+          </p>
+        </details>
+      </footer>
     </main>
     <script type="module">
       import * as bindings from "../dist/wasm/wasm_audio_engine.js";
       import { createAudioEngine } from "../dist/index.js";
       import { setupTools } from "./tools.js";
+      import { initLanguage, message, uiError, errorInfo } from "./i18n.js";
+      import { initPwa } from "./pwa.js";
+      initLanguage();
+      initPwa();
       const $ = (id) => document.getElementById(id);
       const file = $("file"),
         prepare = $("prepare"),
@@ -470,7 +685,9 @@
         output.hidden = true;
         download.hidden = true;
         $("clip-count").hidden = true;
-        $("output-note").textContent = "Your processed WAV will appear here.";
+        message($("output-note"), "Your processed WAV will appear here.");
+        delete $("duration").dataset.i18n;
+        delete $("duration").dataset.i18nValues;
         $("duration").textContent = "—";
         $("silence-count").textContent = "—";
         $("gain").textContent = "—";
@@ -488,12 +705,12 @@
           inputUrl = URL.createObjectURL(file.files[0]);
           source.src = inputUrl;
           source.hidden = false;
-          status.textContent = "Ready to process locally.";
+          message(status, "Ready to process locally.");
         } else {
           source.removeAttribute("src");
           source.load();
           source.hidden = true;
-          status.textContent = "Choose a WAV file to begin.";
+          message(status, "Choose a WAV file to begin.");
         }
       });
       $("sample").addEventListener("click", () => {
@@ -536,17 +753,17 @@
       try {
         engine = await createAudioEngine(bindings);
         const tools = setupTools(engine);
-        status.textContent = "Choose a WAV file to begin.";
+        message(status, "Choose a WAV file to begin.");
         prepare.disabled = false;
         prepare.addEventListener("click", async () => {
           const input = file.files[0];
           tools.reset();
           if (!input) {
-            status.textContent = "Choose a WAV file first.";
+            message(status, "Choose a WAV file first.");
             return;
           }
           if (input.size > 8 * 1024 * 1024) {
-            status.textContent = "This test page accepts files up to 8 MiB.";
+            message(status, "This test page accepts files up to 8 MiB.");
             return;
           }
           const threshold = Number($("threshold").value),
@@ -558,13 +775,18 @@
             !Number.isSafeInteger(minSilence) ||
             minSilence < 1
           ) {
-            status.textContent =
-              "Enter a threshold from 0 to 1 and a positive whole number of source frames.";
+            message(
+              status,
+              "Enter a threshold from 0 to 1 and a positive whole number of source frames.",
+            );
             return;
           }
           clearOutput();
           controller = new AbortController();
           prepare.disabled = true;
+          document.dispatchEvent(
+            new CustomEvent("audio-busy", { detail: true }),
+          );
           file.disabled = true;
           $("sample").disabled = true;
           cancel.disabled = false;
@@ -580,9 +802,7 @@
                 write(bytes) {
                   outputBytes += bytes.length;
                   if (outputBytes > 32 * 1024 * 1024)
-                    throw new Error(
-                      "Output exceeds this page's 32 MiB memory limit.",
-                    );
+                    throw uiError("Output exceeds this page's 32 MiB limit.");
                   pieces.push(bytes);
                 },
               }),
@@ -601,7 +821,13 @@
                   waveform.push([min, max]);
                 },
                 onProgress(phase, completed, total) {
-                  status.textContent = `${phase}: ${completed} / ${total} frames`;
+                  message(status, "{phase}: {completed} / {total} frames", {
+                    phase: {
+                      key: phase === "analyze" ? "Analyzing" : "Processing",
+                    },
+                    completed,
+                    total,
+                  });
                   progress.value = total ? completed / total : 1;
                 },
               },
@@ -615,23 +841,39 @@
             download.href = outputUrl;
             download.download = "prepared.wav";
             download.hidden = false;
-            $("output-note").textContent =
-              `${result.outputSampleRate.toLocaleString()} Hz · ${$("channels").value === "1" ? "Mono" : "Stereo"} · ${result.outputFrames.toLocaleString()} frames`;
-            $("clip-count").textContent =
-              `${result.clippedSamples} saturated samples`;
+            message(
+              $("output-note"),
+              "{rate} Hz · {channels} · {frames} frames",
+              {
+                rate: result.outputSampleRate,
+                channels: {
+                  key: $("channels").value === "1" ? "Mono" : "Stereo",
+                },
+                frames: result.outputFrames,
+              },
+            );
+            message($("clip-count"), "{count} saturated samples", {
+              count: result.clippedSamples,
+            });
             $("clip-count").hidden = false;
-            $("duration").textContent =
-              `${(result.inputFrames / result.inputSampleRate).toFixed(1)}s`;
+            message($("duration"), "{seconds}s", {
+              seconds: (result.inputFrames / result.inputSampleRate).toFixed(1),
+            });
             $("silence-count").textContent = quiet.length;
             $("gain").textContent = `${result.appliedGain.toFixed(2)}×`;
             for (const [start, end] of quiet.slice(0, 100)) {
               const li = document.createElement("li");
-              li.textContent = `${(start / result.inputSampleRate).toFixed(2)}s – ${(end / result.inputSampleRate).toFixed(2)}s`;
+              message(li, "{start}s – {end}s", {
+                start: (start / result.inputSampleRate).toFixed(2),
+                end: (end / result.inputSampleRate).toFixed(2),
+              });
               $("silences").append(li);
             }
             if (quiet.length > 100) {
               const li = document.createElement("li");
-              li.textContent = `Showing 100 of ${quiet.length} intervals.`;
+              message(li, "Showing 100 of {count} intervals.", {
+                count: quiet.length,
+              });
               $("silences").append(li);
             }
             const canvas = $("waveform"),
@@ -646,14 +888,21 @@
               ctx.lineTo(x, mid - min * mid);
             });
             ctx.stroke();
-            status.textContent =
-              "Processing complete. Your audio stayed on this device.";
+            message(
+              status,
+              "Processing complete. Your audio stayed on this device.",
+            );
             progress.value = 1;
           } catch (error) {
             clearOutput();
-            status.textContent = `Processing stopped: ${String(error)}`;
+            message(status, "Processing stopped: {reason}", {
+              reason: errorInfo(error),
+            });
           } finally {
             prepare.disabled = false;
+            document.dispatchEvent(
+              new CustomEvent("audio-busy", { detail: false }),
+            );
             file.disabled = false;
             $("sample").disabled = false;
             cancel.disabled = true;
@@ -661,7 +910,10 @@
           }
         });
       } catch (error) {
-        status.textContent = `Engine failed to load: ${String(error)}. Build the SDK and serve the repository over localhost.`;
+        message(
+          status,
+          "Engine failed to load. Build the SDK and serve the repository over localhost.",
+        );
       }
     </script>
   </body>

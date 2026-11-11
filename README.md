@@ -84,3 +84,14 @@ The site root redirects to `./examples/`; keeping `examples/` beside `dist/` pre
 After building the SDK locally, create a fresh output directory with `python scripts/build_site.py --revision <full-git-sha>` and verify it with `python scripts/check_site.py _site --revision <full-git-sha>`. The builder refuses to overwrite an existing output directory; use `--output <new-directory>` when testing another build. Serve the repository root and open `/_site/` to test a project-style subpath.
 
 For rollback, revert the unwanted site change on `main` and push the revert so the same checked workflow redeploys the previous behavior. Do not change the Pages source to a repository branch or publish the repository root directly.
+
+
+## Languages and offline PWA
+
+The demo defaults to English, independently of the browser language. The language menu supports English, Simplified Mandarin Chinese (`zh-Hans`), and Bahasa Melayu (`ms`). Selection is saved locally; switching languages preserves selected audio and results. UI text, processing states, errors, results, and accessible labels are localized. Native file-picker, media-control, and installation dialogs follow the browser/OS language.
+
+The deployed demo includes a project-relative manifest, standalone launch settings, 192/512-pixel and maskable icons, an Apple touch icon, and a revisioned service worker. After a successful online visit, the offline-ready status confirms app resources are cached, including WASM and translations. Audio processing then works after an offline reload. The app does not persist input audio or output results; only application resources and the language preference are saved. Icons are code-owned assets; regenerate PNG compatibility files with `python scripts/generate_icons.py`.
+
+The worker validates resource hashes against the matching build manifest before installing, only handles whitelisted same-origin GET assets, and scopes its cache namespace to this repository path. Updates wait for **Update and reload** or **Later**. **Review update** reopens a dismissed prompt; applying an update is disabled while processing. Reloading clears temporary audio results, as stated in the prompt. Activating an update deletes this app's older caches and preserves unrelated caches.
+
+Run `npm test` for dictionary completeness, interpolation, fallback, and error-contract checks. After a fresh site build, run `npm run test:pwa -- <site-directory>` for isolated Chrome E2E checks, including offline reload and a real two-version worker update. The suite uses the existing Chrome installation (`CHROME_PATH` can override it), Node, and Python with no new npm dependencies. GitHub Actions runs the same PWA checks before deployment. Chromium installability checks are not proof of physical Android/iOS installation or background processing.

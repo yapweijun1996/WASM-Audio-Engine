@@ -1,4 +1,5 @@
-﻿export function setupTools(engine) {
+import { message, uiError, errorInfo } from "./i18n.js";
+export function setupTools(engine) {
   const $ = (id) => document.getElementById(id);
   const ids = [
     "extract-test",
@@ -23,7 +24,7 @@
     quiet = [];
     clear();
     for (const id of ids) $(id).disabled = true;
-    $("tools-status").textContent = "Process a WAV to enable these tests.";
+    message($("tools-status"), "Process a WAV to enable these tests.");
   };
   document.addEventListener("audio-source-change", reset);
   const setSource = (input, result, intervals) => {
@@ -31,7 +32,7 @@
     info = result;
     quiet = intervals;
     for (const id of ids) $(id).disabled = false;
-    $("tools-status").textContent = "Ready to test additional operations.";
+    message($("tools-status"), "Ready to test additional operations.");
   };
   const link = (blob, name, label) => {
     const url = URL.createObjectURL(blob);
@@ -39,7 +40,7 @@
     const a = document.createElement("a");
     a.href = url;
     a.download = name;
-    a.textContent = label;
+    message(a, label.key || label, label.values || {});
     a.className = "download";
     $("tools-output").append(a);
   };
@@ -47,19 +48,25 @@
     $(id).addEventListener("click", async () => {
       if (!source || busy) return;
       busy = true;
+      document.dispatchEvent(new CustomEvent("audio-busy", { detail: true }));
       $("file").disabled = true;
       $("sample").disabled = true;
       $("prepare").disabled = true;
       for (const item of ids) $(item).disabled = true;
       clear();
-      $("tools-status").textContent = "Working locally…";
+      message($("tools-status"), "Working locally…");
       try {
         await action();
       } catch (error) {
         clear();
-        $("tools-status").textContent = `Operation failed: ${String(error)}`;
+        message($("tools-status"), "Operation failed: {reason}", {
+          reason: errorInfo(error),
+        });
       } finally {
         busy = false;
+        document.dispatchEvent(
+          new CustomEvent("audio-busy", { detail: false }),
+        );
         $("file").disabled = false;
         $("sample").disabled = false;
         $("prepare").disabled = false;
@@ -75,7 +82,7 @@
         write(data) {
           bytes += data.length;
           if (bytes > 32 * 1024 * 1024)
-            throw new Error("Output exceeds this page's 32 MiB limit.");
+            throw uiError("Output exceeds this page's 32 MiB limit.");
           parts.push(data);
         },
       }),
@@ -87,8 +94,10 @@
       endSeconds: Number($("extract-end").value),
     });
     link(clip.audio, "excerpt.wav", "Download excerpt");
-    $("tools-status").textContent =
-      `Extracted source frames ${clip.startFrame}–${clip.endFrame}.`;
+    message($("tools-status"), "Extracted source frames {start}–{end}.", {
+      start: clip.startFrame,
+      end: clip.endFrame,
+    });
   });
   run("trim-test", async () => {
     const output = sink();
@@ -102,8 +111,11 @@
       "trimmed.wav",
       "Download trimmed WAV",
     );
-    $("tools-status").textContent =
-      `Removed ${quiet.length} quiet intervals; ${result.outputFrames} frames remain.`;
+    message(
+      $("tools-status"),
+      "Removed {count} quiet intervals; {frames} frames remain.",
+      { count: quiet.length, frames: result.outputFrames },
+    );
   });
   run("chunk-test", async () => {
     const seconds = Number($("chunk-length").value);
@@ -112,23 +124,28 @@
       seconds < 1 ||
       seconds * info.inputSampleRate > Number.MAX_SAFE_INTEGER
     )
-      throw new Error("Enter a positive whole number of seconds.");
+      throw uiError("Enter a positive whole number of seconds.");
     const length = seconds * info.inputSampleRate;
     if (Math.ceil(info.inputFrames / length) > 50)
-      throw new Error("More than 50 chunks; choose a longer chunk length.");
+      throw uiError("More than 50 chunks; choose a longer chunk length.");
     let count = 0;
     for await (const chunk of engine.chunkWav(source, {
       chunkFrames: length,
     })) {
       count++;
-      link(chunk.audio, `chunk-${count}.wav`, `Chunk ${count}`);
+      link(chunk.audio, `chunk-${count}.wav`, {
+        key: "Chunk {count}",
+        values: { count },
+      });
     }
-    $("tools-status").textContent = `Created ${count} source-format chunks.`;
+    message($("tools-status"), "Created {count} source-format chunks.", {
+      count,
+    });
   });
   run("merge-test", async () => {
     const second = $("merge-file").files[0];
     if (!second || second.size > 8 * 1024 * 1024)
-      throw new Error("Choose a second PCM16 WAV up to 8 MiB.");
+      throw uiError("Choose a second PCM16 WAV up to 8 MiB.");
     const output = sink();
     const result = await engine.mergeWav([source, second], output.stream);
     link(
@@ -136,15 +153,17 @@
       "merged.wav",
       "Download merged WAV",
     );
-    $("tools-status").textContent =
-      `Merged ${result.outputFrames} frames at ${result.sampleRate} Hz.`;
+    message($("tools-status"), "Merged {frames} frames at {rate} Hz.", {
+      frames: result.outputFrames,
+      rate: result.sampleRate,
+    });
   });
   run("spectrum-test", async () => {
     const context = new AudioContext();
     try {
       const decoded = await context.decodeAudioData(await source.arrayBuffer());
       const n = Math.min(4096, decoded.length);
-      if (n < 4) throw new Error("At least four audio frames are required.");
+      if (n < 4) throw uiError("At least four audio frames are required.");
       const samples = new Float32Array(n);
       for (let c = 0; c < decoded.numberOfChannels; c++) {
         const data = decoded.getChannelData(c);
@@ -153,8 +172,16 @@
       }
       const bins = engine.spectrum(samples, decoded.sampleRate);
       const peak = bins.reduce((a, b) => (b.amplitude > a.amplitude ? b : a));
-      $("tools-status").textContent =
-        `First ${n} decoded frames: strongest bin ${peak.frequencyHz.toFixed(1)} Hz, amplitude ${peak.amplitude.toFixed(4)}. Browser decoding may resample to ${decoded.sampleRate} Hz.`;
+      message(
+        $("tools-status"),
+        "First {frames} decoded frames: strongest bin {frequency} Hz, amplitude {amplitude}. Browser decoding may resample to {rate} Hz.",
+        {
+          frames: n,
+          frequency: peak.frequencyHz.toFixed(1),
+          amplitude: peak.amplitude.toFixed(4),
+          rate: decoded.sampleRate,
+        },
+      );
     } finally {
       await context.close();
     }

@@ -11,6 +11,14 @@ ROOT = Path(__file__).resolve().parent.parent
 ASSETS = (
     "examples/index.html",
     "examples/tools.js",
+    "examples/i18n.js",
+    "examples/pwa.js",
+    "manifest.webmanifest",
+    "icons/icon.svg",
+    "icons/icon-192.png",
+    "icons/icon-512.png",
+    "icons/maskable-512.png",
+    "icons/apple-touch-icon.png",
     "dist/index.js",
     "dist/errors.js",
     "dist/wav.js",
@@ -38,6 +46,12 @@ def main():
         destination = args.output / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / name, destination)
+    page = args.output / "examples/index.html"
+    page.write_text(
+        page.read_text(encoding="utf-8").replace(
+            "</head>", '<meta name="audio-engine-build" content="' + args.revision + '"></head>', 1
+        ), encoding="utf-8",
+    )
     (args.output / "index.html").write_text(
         '<!doctype html>\n<html lang="en"><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -47,6 +61,13 @@ def main():
         encoding="utf-8",
     )
     (args.output / ".nojekyll").touch()
+    precache = list(ASSETS) + ["index.html"]
+    worker = (ROOT / "web/service-worker.js").read_text(encoding="utf-8")
+    version = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))["version"]
+    if not re.fullmatch(r"[0-9A-Za-z.+-]+", version):
+        raise RuntimeError("Invalid application version")
+    worker = worker.replace("__BUILD_REVISION__", args.revision).replace("__PRECACHE_FILES__", json.dumps(precache)).replace("__APP_VERSION__", version)
+    (args.output / "service-worker.js").write_text(worker, encoding="utf-8")
     hashes = {
         path.relative_to(args.output).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(args.output.rglob("*"))

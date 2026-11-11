@@ -44,6 +44,9 @@
 
 - [x] Add an explicitly authorized GitHub Actions Pages workflow that checks the SDK, builds release WASM, verifies a whitelisted static artifact, and deploys from main. Local packaging and project-subpath browser checks passed; live deployment acceptance is recorded in `docs/validation.md`.
 
+- [x] Localize the demo in English (default), Simplified Mandarin Chinese, and Malay, including runtime states, errors, results, and accessible labels; persist only the language selection.
+- [x] Add an installable offline PWA shell with scoped, revisioned, integrity-checked static caching and user-confirmed updates. Chrome installability, offline processing, and waiting-worker update acceptance are covered by repeatable E2E tests. Physical-device installation remains unverified.
+
 ## 5. Quality and Acceptance
 
 - [x] Test empty, silent, clipped, malformed, and unsupported inputs on the current PCM16 paths. These checks do not establish support for other codecs or every malformed file.

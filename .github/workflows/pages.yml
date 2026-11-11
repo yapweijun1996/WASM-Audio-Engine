@@ -77,6 +77,9 @@ jobs:
           python3 scripts/build_site.py --revision "$GITHUB_SHA"
           python3 scripts/check_site.py _site --revision "$GITHUB_SHA"
 
+      - name: Verify multilingual PWA in Chrome
+        run: npm run test:pwa -- _site
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:

@@ -16,7 +16,7 @@ def main():
     manifest = json.loads((args.site / "build.json").read_text(encoding="utf-8"))
     if manifest["revision"] != args.revision:
         raise RuntimeError("Deployment revision does not match")
-    expected = set(ASSETS) | {"index.html", ".nojekyll"}
+    expected = set(ASSETS) | {"index.html", ".nojekyll", "service-worker.js"}
     actual = {
         path.relative_to(args.site).as_posix()
         for path in args.site.rglob("*") if path.is_file()
@@ -32,6 +32,12 @@ def main():
     html = (args.site / "examples/index.html").read_text(encoding="utf-8-sig")
     if '../dist/index.js' not in html or '../dist/wasm/wasm_audio_engine.js' not in html:
         raise RuntimeError("Demo imports do not preserve the project subpath")
+    app = json.loads((args.site / "manifest.webmanifest").read_text(encoding="utf-8"))
+    if app["start_url"] != "./examples/" or app["scope"] != "./" or app["display"] != "standalone":
+        raise RuntimeError("Invalid project-relative PWA manifest")
+    worker = (args.site / "service-worker.js").read_text(encoding="utf-8")
+    if args.revision not in worker or "__PRECACHE_FILES__" in worker or "__APP_VERSION__" in worker:
+        raise RuntimeError("Service worker build tokens were not resolved")
     print("Static artifact identity, allowlist, and hashes verified")
 
 
