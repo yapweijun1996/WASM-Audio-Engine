@@ -111,3 +111,12 @@ Follow-up source revision `241c1607ee5d316f4aa8b82cb4f62c1860fca03c` added an ex
 - The built manifest and PNG icons passed Chrome installability checks; this is not an actual OS installation or physical phone test. Local deployment artifact hashes and allowlist checks passed. Live publication and browser acceptance follow after the deployment workflow completes.
 
 - Update-flow correction: an initial harness path tried to reopen a deferred prompt by reload and timed out. The UI had no visible reopen control. Added a localized Review update button; the final test requires visible, enabled controls, dismisses with Later, reopens through that button, then explicitly applies the waiting worker. The failed attempt is not counted as a pass.
+
+
+## Multilingual PWA live acceptance
+
+Source revision `17e02d2896ce82017025179717baebcb7c0bedc0` was published by Actions run [42994162720](https://github.com/yapweijun1996/WASM-Audio-Engine/actions/runs/42994162720). Both build and deploy jobs succeeded, including the seven-scenario isolated Chrome PWA suite. Live build.json matched that revision and all 19 public asset hashes matched. The nonpublic .nojekyll deployment control is excluded from HTTP checks.
+
+The safe live suite ran on `https://yapweijun1996.github.io/WASM-Audio-Engine/` in a fresh Chrome profile. Six scenarios passed: English default despite overridden browser locale; actual manifest/installability and scoped active worker; process/extract/trim/chunk/merge/FFT in all three languages; locale persistence and result preservation; localized malformed-input and cancellation behavior; 390-pixel layouts; and offline reload with sample processing and no audio entries in Cache Storage (grouped into the six executable scenarios in the runner). No browser errors were reported. The test used generated audio only. Live mode explicitly skipped replacing the server with an update fixture; the complete waiting-worker lifecycle passed in local and Actions runs.
+
+Deployment: PASS. Functional acceptance for the tested Chrome scope: PASS. Quality/speed improvement: NOT_EVALUATED; no comparative improvement claim is made. Actual Android/iOS installation, Safari behavior, device background/lifecycle behavior and screen-reader use remain unverified. The documentation-only acceptance commit skips a redundant deployment; the deployed app remains bound to revision 17e02d2.
